@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secretos y configuración local: nunca versionar credenciales
+.env
+.env.*
+*.local
+
+# Datos generados sin comprimir (el repositorio guarda solo data/seed.sql.gz)
+seed.sql
+seed_*.sql
+
+# Sistema
+.DS_Store
