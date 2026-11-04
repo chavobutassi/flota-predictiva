@@ -22,7 +22,9 @@ createdb flota
 ./scripts/cargar_demo.sh "postgresql://usuario@localhost/flota"
 ```
 
-La carga tarda alrededor de 90 segundos, porque cada una de las ~13.000 salidas y retornos dispara los triggers de validación. Con eso queda cargado:
+La carga tarda alrededor de 90 segundos, porque cada una de las ~13.000 salidas y retornos dispara los triggers de validación.
+
+Sin `psql` (por ejemplo en Windows): `pip install "psycopg[binary]"` y `python scripts/cargar_demo.py` con `DATABASE_URL` en el entorno. Conserva los usuarios que ya existan y se niega a correr sobre una base con datos. Con eso queda cargado:
 
 | Qué | Cantidad |
 | --- | --- |
@@ -107,7 +109,8 @@ db/schema.sql              Esquema: tablas, restricciones, triggers, vistas y ca
 db/supabase_seguridad.sql  Cierra la API de datos de Supabase (RLS y permisos)
 data/seed.sql.gz           Datos sintéticos listos para cargar (2 años de historia)
 generador/generar_datos.py Generador reproducible de los datos (solo biblioteca estándar)
-scripts/cargar_demo.sh     Carga esquema y datos en una base vacía
+scripts/cargar_demo.sh     Carga esquema y datos en una base vacía (con psql)
+scripts/cargar_demo.py     Carga los datos de demostración sin psql, conservando los usuarios existentes
 docs/diseno.md             Decisiones de diseño y calidad de datos
 docs/der.md                Diagrama de relaciones, tablas, vistas y reglas
 ```
