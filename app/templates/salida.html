@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Salida {{ v.identificador }}{% endblock %}
+{% block contenido %}
+<p><a href="/vehiculos/{{ v.id }}">← {{ v.identificador }}</a></p>
+<h1>Registrar salida</h1>
+<p class="sub">{{ v.identificador }} · {{ v.marca or '' }} {{ v.modelo or '' }} · odómetro actual {{ v.odometro_km | numero(1) }} km</p>
+{% if error %}<p class="aviso-error" role="alert">{{ error }}</p>{% endif %}
+<form class="formulario" method="post" action="/vehiculos/{{ v.id }}/salida">
+  <input type="hidden" name="csrf" value="{{ usuario.csrf }}">
+  {% if gestiona %}
+  <div class="campo"><label for="responsable">Responsable</label>
+    <select id="responsable" name="responsable" required><option value="">Elegir…</option>
+      {% for r in responsables %}<option value="{{ r.id }}" {{ 'selected' if d.get('responsable') == r.id|string or (not d.get('responsable') and r.id == usuario.id) }}>{{ r.nombre }}</option>{% endfor %}
+    </select></div>
+  {% endif %}
+  <div class="campo"><label for="odometro">Odómetro de salida (km)</label>
+    <input id="odometro" name="odometro" inputmode="decimal" required value="{{ d.get('odometro', '') }}">
+    <p class="ayuda">Debe ser igual o mayor a {{ v.odometro_km | numero(1) }}. Se rechaza si es menor al último registrado.</p></div>
+  <div class="campo"><label for="ubicacion">Sale desde</label>
+    <select id="ubicacion" name="ubicacion" required>
+      {% for u in ubicaciones %}<option value="{{ u.id }}" {{ 'selected' if (d.get('ubicacion') == u.id|string) or (not d.get('ubicacion') and v.ubicacion_id == u.id) }}>{{ u.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="campo"><label for="motivo">Motivo o destino</label>
+    <input id="motivo" name="motivo" required maxlength="200" value="{{ d.get('motivo', '') }}"></div>
+  <div class="campo"><label for="retorno_previsto">Retorno previsto (opcional)</label>
+    <input id="retorno_previsto" name="retorno_previsto" type="datetime-local" value="{{ d.get('retorno_previsto', '') }}">
+    <p class="ayuda">Permite avisar cuando un vehículo tarda más de lo esperado.</p></div>
+  <div class="campo"><label for="observaciones">Observaciones (opcional)</label>
+    <textarea id="observaciones" name="observaciones" maxlength="500">{{ d.get('observaciones', '') }}</textarea></div>
+  <button type="submit">Registrar salida</button>
+</form>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}Tablero{% endblock %}
+{% block contenido %}
+<h1>Tablero de flota</h1>
+<p class="sub">Estado actual, salidas en curso y servicios por vencer.</p>
+{% if ok %}<p class="aviso-ok" role="status">{{ ok }}</p>{% endif %}
+
+<div class="cifras">
+  <div class="cifra"><b>{{ resumen.disponibles }}</b><span>Disponibles</span></div>
+  <div class="cifra"><b>{{ resumen.asignados }}</b><span>En salida</span></div>
+  <div class="cifra"><b>{{ resumen.en_taller }}</b><span>En taller o fuera de servicio</span></div>
+  <div class="cifra {{ 'alerta' if resumen.con_vencidos }}"><b>{{ resumen.con_vencidos }}</b><span>Con servicios vencidos</span></div>
+  <div class="cifra {{ 'alerta' if resumen.retornos_vencidos }}"><b>{{ resumen.retornos_vencidos }}</b><span>Retornos vencidos</span></div>
+</div>
+
+<form class="filtros" method="get" action="/">
+  <div><label for="q">Buscar</label><input id="q" name="q" value="{{ f_q }}" placeholder="Patente, marca o modelo" maxlength="50"></div>
+  <div><label for="estado">Estado</label>
+    <select id="estado" name="estado"><option value="">Activos</option>
+      {% for e in estados %}<option value="{{ e.codigo }}" {{ 'selected' if e.codigo == f_estado }}>{{ e.nombre }}</option>{% endfor %}
+    </select></div>
+  <div><label for="vencidos">&nbsp;</label>
+    <select id="vencidos" name="vencidos">
+      <option value="">Todos</option><option value="1" {{ 'selected' if f_vencidos }}>Solo con servicios vencidos</option></select></div>
+  <button type="submit">Filtrar</button>
+  <a class="boton sec" href="/">Limpiar</a>
+</form>
+
+<div class="tabla-scroll"><table>
+  <thead><tr><th>Vehículo</th><th>Estado</th><th class="ocultar-movil">Ubicación / responsable</th>
+    <th class="num">Odómetro (km)</th><th class="ocultar-movil">Última lectura</th><th>Próximo servicio</th></tr></thead>
+  <tbody>
+  {% for v in vehiculos %}
+  <tr>
+    <td><a href="/vehiculos/{{ v.id }}"><b>{{ v.identificador }}</b></a><br>
+      <span class="suave">{{ v.marca or '' }} {{ v.modelo or '' }} · {{ v.tipo }}</span></td>
+    <td><span class="etiqueta {{ v.estado_codigo }}">{{ v.estado }}</span></td>
+    <td class="ocultar-movil">
+      {% if v.asignacion_id %}{{ v.responsable }}<br>
+        <span class="{{ 'mal-texto' if v.retorno_vencido else 'suave' }}">
+          {% if v.retorno_previsto %}Retorno previsto {{ v.retorno_previsto | fecha('%d/%m %H:%M') }}{% else %}Sin retorno previsto{% endif %}</span>
+      {% else %}{{ v.ubicacion or '—' }}{% endif %}</td>
+    <td class="num">{{ v.odometro_km | numero(1) }}</td>
+    <td class="ocultar-movil">{% if v.dias_sin_lectura is none %}—
+      {% elif v.dias_sin_lectura > 14 %}<span class="mal-texto">hace {{ v.dias_sin_lectura }} d</span>
+      {% else %}hace {{ v.dias_sin_lectura }} d{% endif %}</td>
+    <td>{% if v.vencidos %}<span class="etiqueta mal">{{ v.vencidos }} vencido{{ 's' if v.vencidos > 1 }}</span><br>{% endif %}
+      {% if v.proxima_tarea %}{{ v.proxima_tarea }}<br><span class="suave">{{ v.proxima_fecha | fecha('%d/%m/%Y') if v.proxima_fecha else 'sin fecha estimada' }}</span>{% else %}—{% endif %}</td>
+  </tr>
+  {% else %}<tr><td colspan="6" class="suave">No hay vehículos con esos filtros.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Retorno {{ a.identificador }}{% endblock %}
+{% block contenido %}
+<p><a href="/vehiculos/{{ a.vehiculo_id }}">← {{ a.identificador }}</a></p>
+<h1>Registrar retorno</h1>
+<p class="sub">{{ a.identificador }} · salió {{ a.salida_real | fecha }} con {{ a.responsable }}
+  · odómetro de salida {{ a.odometro_salida_km | numero(1) }} km</p>
+{% if error %}<p class="aviso-error" role="alert">{{ error }}</p>{% endif %}
+<form class="formulario" method="post" action="/asignaciones/{{ a.id }}/retorno">
+  <input type="hidden" name="csrf" value="{{ usuario.csrf }}">
+  <div class="campo"><label for="odometro">Odómetro de retorno (km)</label>
+    <input id="odometro" name="odometro" inputmode="decimal" required value="{{ d.get('odometro', '') }}">
+    <p class="ayuda">Debe ser igual o mayor a {{ a.odometro_salida_km | numero(1) }}.</p></div>
+  <div class="campo"><label for="ubicacion">Vuelve a</label>
+    <select id="ubicacion" name="ubicacion" required>
+      {% for u in ubicaciones %}<option value="{{ u.id }}" {{ 'selected' if (d.get('ubicacion') == u.id|string) or (not d.get('ubicacion') and a.ubicacion_salida_id == u.id) }}>{{ u.nombre }}</option>{% endfor %}
+    </select></div>
+  <div class="campo"><label for="observaciones">Observaciones (opcional)</label>
+    <textarea id="observaciones" name="observaciones" maxlength="500">{{ d.get('observaciones', '') }}</textarea></div>
+  <button type="submit">Registrar retorno</button>
+</form>
+{% endblock %}

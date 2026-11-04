@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Lectura {{ v.identificador }}{% endblock %}
+{% block contenido %}
+<p><a href="/vehiculos/{{ v.id }}">← {{ v.identificador }}</a></p>
+<h1>Cargar lectura de odómetro</h1>
+<p class="sub">{{ v.identificador }} · último valor registrado {{ v.odometro_km | numero(1) }} km. La lectura queda con la fecha y hora actuales.</p>
+{% if error %}<p class="aviso-error" role="alert">{{ error }}</p>{% endif %}
+<form class="formulario" method="post" action="/vehiculos/{{ v.id }}/lectura">
+  <input type="hidden" name="csrf" value="{{ usuario.csrf }}">
+  <div class="campo"><label for="odometro">Odómetro (km)</label>
+    <input id="odometro" name="odometro" inputmode="decimal" required value="{{ d.get('odometro', '') }}">
+    <p class="ayuda">Se rechaza si es menor al último registrado. Revisá bien el número antes de guardar.</p></div>
+  <div class="campo"><label for="horas">Horas de motor (opcional)</label>
+    <input id="horas" name="horas" inputmode="decimal" value="{{ d.get('horas', '') }}"></div>
+  <button type="submit">Guardar lectura</button>
+</form>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Incidencia {{ v.identificador }}{% endblock %}
+{% block contenido %}
+<p><a href="/vehiculos/{{ v.id }}">← {{ v.identificador }}</a></p>
+<h1>Reportar incidencia</h1>
+<p class="sub">{{ v.identificador }} · {{ v.marca or '' }} {{ v.modelo or '' }}. Se registra con la fecha y hora actuales y a tu nombre.</p>
+{% if error %}<p class="aviso-error" role="alert">{{ error }}</p>{% endif %}
+<form class="formulario" method="post" action="/vehiculos/{{ v.id }}/incidencia">
+  <input type="hidden" name="csrf" value="{{ usuario.csrf }}">
+  <div class="campo"><label for="tipo">Tipo</label>
+    <select id="tipo" name="tipo" required>{% for c, n in tipos %}<option value="{{ c }}" {{ 'selected' if d.get('tipo') == c }}>{{ n }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="severidad">Severidad</label>
+    <select id="severidad" name="severidad" required>{% for c, n in severidades %}<option value="{{ c }}" {{ 'selected' if d.get('severidad') == c }}>{{ n }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="sistema">Sistema afectado (opcional)</label>
+    <select id="sistema" name="sistema"><option value="">—</option>{% for s in sistemas %}<option {{ 'selected' if d.get('sistema') == s }}>{{ s }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="descripcion">Qué pasó</label>
+    <textarea id="descripcion" name="descripcion" required maxlength="500">{{ d.get('descripcion', '') }}</textarea></div>
+  <div class="campo"><label for="odometro">Odómetro al momento (opcional)</label>
+    <input id="odometro" name="odometro" inputmode="decimal" value="{{ d.get('odometro', '') }}"></div>
+  <button type="submit">Registrar incidencia</button>
+</form>
+{% endblock %}

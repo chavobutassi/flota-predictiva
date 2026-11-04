@@ -36,6 +36,15 @@ CREATE TABLE usuario_rol (
     PRIMARY KEY (usuario_id, rol_id)
 );
 
+-- Acceso a la aplicación web: la contraseña se guarda solo como hash (Argon2),
+-- en una tabla aparte para que ninguna vista ni consulta de usuarios la exponga.
+CREATE TABLE credencial_acceso (
+    usuario_id    INTEGER PRIMARY KEY REFERENCES usuario(id),
+    password_hash TEXT        NOT NULL,
+    debe_cambiar  BOOLEAN     NOT NULL DEFAULT TRUE,
+    actualizada_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ---------- Catálogos ----------
 
 CREATE TABLE ubicacion (

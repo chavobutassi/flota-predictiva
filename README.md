@@ -4,11 +4,11 @@ Base de datos y generador de datos para **gestionar una flota de vehículos y an
 
 El proyecto nace con dos objetivos: servir como pieza de portfolio de analítica de datos aplicada y, a la vez, poder operar una flota real. Por eso la base de datos hace cumplir sus propias reglas (no confía en la aplicación) y todos los datos incluidos son **sintéticos**.
 
-> **Estado:** la base de datos, el generador de datos y su verificación están terminados. La aplicación, el tablero y el modelo de riesgo de falla están por construir (ver [Hoja de ruta](#hoja-de-ruta)).
+> **Estado:** la base de datos, el generador de datos y una primera versión de la aplicación web (login con roles, tablero, salidas y retornos, lecturas e incidencias) están terminados y probados. Faltan las órdenes de mantenimiento en la app, la pantalla de corrección de lecturas y el modelo de riesgo de falla (ver [Hoja de ruta](#hoja-de-ruta)).
 
 ## Qué tiene de interesante
 
-- **Modelo de datos con integridad real.** 19 tablas, 6 vistas y 6 triggers. Un vehículo no puede salir dos veces a la vez, el odómetro no puede retroceder, y cada salida y retorno genera solo la lectura, el cambio de estado y el historial.
+- **Modelo de datos con integridad real.** 20 tablas, 6 vistas y 6 triggers. Un vehículo no puede salir dos veces a la vez, el odómetro no puede retroceder, y cada salida y retorno genera solo la lectura, el cambio de estado y el historial.
 - **Pensado para carga manual del odómetro.** Es el caso real de muchas flotas. Los errores de tipeo se rechazan, se marcan o se corrigen con auditoría, para que no contaminen las predicciones.
 - **Mantenimiento predictivo en dos fases.** Primero reglas basadas en el ritmo de uso real de cada vehículo (ya incluidas como vistas SQL); después un modelo de riesgo de falla que debe superar esa línea base.
 - **Datos sintéticos con verdad conocida.** El generador simula 2 años de una flota de 40 vehículos con un proceso de fallas documentado, de modo que un modelo se pueda evaluar contra algo que se conoce.
@@ -56,10 +56,55 @@ ORDER BY costo_por_km DESC NULLS LAST
 LIMIT 10;
 ```
 
+## Aplicación web
+
+FastAPI + PostgreSQL, sin JavaScript en el navegador. Las reglas viven en la base; la aplicación valida el formato y muestra los rechazos de la base en castellano (por ejemplo, «Odómetro 500 menor que una lectura anterior»).
+
+| Pantalla | Qué hace | Quién |
+| --- | --- | --- |
+| Tablero | Estado de la flota, retornos vencidos, servicios por vencer, antigüedad de la última lectura | Todos los roles |
+| Ficha del vehículo | Servicios con km y días restantes, últimas salidas, lecturas, incidencias y órdenes | Todos los roles |
+| Salida y retorno | Odómetro manual; el retorno solo lo cierra el responsable o un gestor | Admin, gestor, conductor |
+| Lectura suelta | Odómetro entre viajes (carga de combustible, por ejemplo) | Todos los roles |
+| Incidencia | Tipo, severidad, sistema; queda ligada a la salida en curso | Todos los roles |
+
+**Seguridad:** contraseñas con Argon2 en una tabla aparte, contraseña temporal obligatoriamente cambiada en el primer ingreso, sesión en cookie firmada (`HttpOnly`, `SameSite`, `Secure` en producción), token CSRF en cada formulario, límite de 5 intentos de acceso fallidos por 15 minutos, cabeceras de seguridad (CSP, HSTS), consultas siempre parametrizadas y permisos leídos de la base en cada pedido (una baja rige al instante).
+
+### Probarla en tu máquina
+
+```bash
+pip install -r app/requirements.txt
+export DATABASE_URL="postgresql://usuario@localhost/flota"      # base ya cargada con cargar_demo.sh
+export SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+python3 -m app.crear_usuario marcelo.ibanez@flota-demo.test     # pide una contraseña temporal
+uvicorn app.main:app --reload
+```
+
+Abrir <http://localhost:8000> e ingresar con ese correo (usuario `ADMIN` de los datos de demostración). Para dar de alta usuarios reales: `python -m app.crear_usuario correo --nombre N --apellido A --rol GESTOR`.
+
+### Publicarla en internet
+
+1. **Base de datos** (por ejemplo Supabase, plan gratuito): crear el proyecto, copiar la cadena de conexión y cargar `db/schema.sql` con `psql`. Datos de demostración opcionales: `scripts/cargar_demo.sh`.
+2. **Cerrar la API de datos**: ejecutar `db/supabase_seguridad.sql`. Es imprescindible en Supabase: sin él, quien tenga la clave pública puede leer y escribir las tablas, incluidos los hashes de contraseñas. La aplicación no usa esa API.
+3. **Servidor** (por ejemplo Render): *New › Blueprint* sobre este repositorio (`render.yaml`, usa el `Dockerfile`). Cargar `DATABASE_URL` en el panel; `SECRET_KEY` se genera sola.
+4. **Primer usuario**: desde tu máquina, con la misma `DATABASE_URL`, `python -m app.crear_usuario ... --rol ADMIN`.
+
+No se probó el despliegue en Render ni en Supabase. Con datos reales de una organización conviene además un dominio propio con HTTPS, copias de seguridad de la base y revisar con quien corresponda dónde pueden alojarse esos datos.
+
+### Probar la aplicación
+
+```bash
+python3 tests/prueba_app.py     # 47 comprobaciones; escribe en la base: usar solo una de desarrollo
+```
+
 ## Estructura del repositorio
 
 ```
+app/                       Aplicación web (FastAPI): rutas, base de datos, seguridad, plantillas
+tests/prueba_app.py        Pruebas de punta a punta de la aplicación
+Dockerfile, render.yaml    Publicación
 db/schema.sql              Esquema: tablas, restricciones, triggers, vistas y catálogos
+db/supabase_seguridad.sql  Cierra la API de datos de Supabase (RLS y permisos)
 data/seed.sql.gz           Datos sintéticos listos para cargar (2 años de historia)
 generador/generar_datos.py Generador reproducible de los datos (solo biblioteca estándar)
 scripts/cargar_demo.sh     Carga esquema y datos en una base vacía
@@ -109,16 +154,16 @@ La carga completa se probó en PostgreSQL 16. Después de cargar, se comprobaron
 
 También se probaron los rechazos del esquema: segunda salida de un vehículo no disponible, retorno sin odómetro, odómetro de retorno menor que el de salida, lectura menor que una anterior, anulación sin motivo, plan sin intervalos y email duplicado. Detalles en [docs/diseno.md](docs/diseno.md) y [docs/der.md](docs/der.md).
 
-**Lo que no se probó:** el esquema no se ejecutó en Supabase ni se definieron políticas de acceso por fila (RLS), y todavía no existe una aplicación sobre la base.
+**Lo que no se probó:** el esquema y la aplicación no se ejecutaron en Supabase ni en Render. No hay políticas de acceso por fila para usar la API de Supabase desde un navegador: `db/supabase_seguridad.sql` la cierra por completo y la aplicación se conecta directo a Postgres.
 
 ## Hoja de ruta
 
 1. ~~**Base de datos**: esquema, reglas de integridad y vistas.~~ Hecho.
 2. ~~**Datos sintéticos**: flota, uso, mantenimiento e incidencias.~~ Hecho.
-3. **Aplicación mínima**: alta de vehículos, salida y retorno con odómetro, lectura suelta, anulación, incidencias, órdenes de mantenimiento y pantalla de corrección de lecturas para administradores.
+3. **Aplicación**: ~~login con roles, tablero, ficha, salida y retorno, lectura suelta e incidencias~~ hecho. Faltan: alta de vehículos, anulación de salidas, órdenes de mantenimiento y pantalla de corrección de lecturas para administradores.
 4. **Tablero**: próximos servicios, vehículos por vencer, lecturas vencidas o sospechosas, costo por km, disponibilidad y tiempos de parada.
 5. **Modelo de riesgo de falla**: probabilidad de falla a 30 días por vehículo y sistema, con validación temporal y comparación contra las reglas de la fase 1.
-6. **Seguridad**: políticas de acceso por rol y pruebas sobre Supabase.
+6. **Seguridad**: políticas de acceso por rol y pruebas sobre Supabase, auditoría de operaciones de la aplicación y segundo factor de acceso.
 
 ## Aviso sobre los datos
 

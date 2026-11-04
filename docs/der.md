@@ -7,6 +7,7 @@ mantener el diagrama legible.
 ```mermaid
 erDiagram
     usuario ||--o{ usuario_rol : tiene
+    usuario ||--o| credencial_acceso : "ingresa con"
     rol ||--o{ usuario_rol : "se asigna en"
 
     tipo_vehiculo ||--o{ vehiculo : clasifica
@@ -40,7 +41,7 @@ erDiagram
 
 | Grupo | Tablas |
 | --- | --- |
-| Identidad | `usuario`, `rol`, `usuario_rol` |
+| Identidad | `usuario`, `rol`, `usuario_rol`, `credencial_acceso` (hash Argon2 de la contraseña, aparte para que ninguna vista la exponga) |
 | Catálogos | `ubicacion`, `tipo_vehiculo`, `estado_vehiculo`, `estado_orden`, `tipo_mantenimiento` |
 | Operación | `vehiculo`, `asignacion`, `lectura_uso` |
 | Mantenimiento | `plan_mantenimiento`, `orden_mantenimiento`, `orden_item`, `incidencia` |
