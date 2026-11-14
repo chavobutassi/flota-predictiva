@@ -11,7 +11,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -48,6 +48,7 @@ async def ciclo_de_vida(_):
 app = FastAPI(lifespan=ciclo_de_vida, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 plantillas = Jinja2Templates(directory=BASE / "templates")
+plantillas.env.globals["demo_visitante"] = bool(config.DEMO_EMAIL)
 
 
 def fecha(valor, formato="%d/%m/%Y %H:%M"):
@@ -237,6 +238,30 @@ async def login(request: Request):
     resp = RedirectResponse("/", status_code=303)
     resp.set_cookie(seguridad.COOKIE, seguridad.crear_cookie_sesion(fila["id"]),
                     max_age=config.SESION_HORAS * 3600, httponly=True,
+                    secure=config.PRODUCCION, samesite="lax")
+    return resp
+
+
+@app.post("/demo")
+async def entrar_demo(request: Request):
+    """Entrada de visitante: sesión sin contraseña para un usuario ficticio de solo lectura."""
+    if not config.DEMO_EMAIL:
+        raise HTTPException(404)
+    fila = db.consultar_uno(
+        """SELECT u.id,
+                  COALESCE(array_agg(r.codigo) FILTER (WHERE r.codigo IS NOT NULL), '{}') AS roles
+             FROM usuario u
+             LEFT JOIN usuario_rol ur ON ur.usuario_id = u.id
+             LEFT JOIN rol r ON r.id = ur.rol_id
+            WHERE lower(u.email) = %s AND u.activo
+            GROUP BY u.id""", (config.DEMO_EMAIL,))
+    # Defensa: solo se acepta un usuario cuyo único rol sea TECNICO (no puede registrar nada).
+    if not fila or set(fila["roles"]) != {"TECNICO"}:
+        return pantalla(request, "login.html",
+                        {"error": "La entrada de visitante no está disponible."}, 503)
+    resp = RedirectResponse("/", status_code=303)
+    resp.set_cookie(seguridad.COOKIE, seguridad.crear_cookie_sesion(fila["id"]),
+                    max_age=3600, httponly=True,
                     secure=config.PRODUCCION, samesite="lax")
     return resp
 

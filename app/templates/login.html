@@ -12,5 +12,11 @@
       <input id="clave" name="clave" type="password" autocomplete="current-password" required maxlength="200"></div>
     <button type="submit">Entrar</button>
   </form>
+  {% if demo_visitante %}
+  <form method="post" action="/demo" class="demo">
+    <p class="sub">¿Solo querés ver cómo funciona? La demo usa datos ficticios y es de solo lectura.</p>
+    <button type="submit" class="sec">Entrar como visitante</button>
+  </form>
+  {% endif %}
 </div>
 {% endblock %}

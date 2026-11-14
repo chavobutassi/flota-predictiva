@@ -8,6 +8,9 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "")
 PRODUCCION = os.environ.get("APP_ENV", "desarrollo").lower() == "produccion"
 ZONA_HORARIA = os.environ.get("ZONA_HORARIA", "America/Argentina/Buenos_Aires")
 SESION_HORAS = int(os.environ.get("SESION_HORAS", "12"))
+# Entrada de visitante (demo pública): correo de un usuario ficticio de solo lectura.
+# Si no se define, el botón no aparece y la ruta /demo no existe.
+DEMO_EMAIL = os.environ.get("DEMO_EMAIL", "").strip().lower()
 
 if not DATABASE_URL:
     sys.exit("Falta la variable de entorno DATABASE_URL.")

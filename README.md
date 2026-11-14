@@ -91,6 +91,8 @@ Abrir <http://localhost:8000> e ingresar con ese correo (usuario `ADMIN` de los 
 3. **Servidor** (por ejemplo Render): *New › Blueprint* sobre este repositorio (`render.yaml`, usa el `Dockerfile`). Cargar `DATABASE_URL` en el panel; `SECRET_KEY` se genera sola.
 4. **Primer usuario**: desde tu máquina, con la misma `DATABASE_URL`, `python -m app.crear_usuario ... --rol ADMIN`.
 
+5. **Entrada de visitante (opcional, para mostrar la demo en un portfolio)**: con los datos de demostración cargados, elegir un usuario cuyo único rol sea TECNICO (solo lectura) y ejecutar `DEMO_EMAIL=ese@correo python -m app.crear_visitante`. Luego cargar la misma `DEMO_EMAIL` en el panel del servicio. La pantalla de ingreso muestra el botón «Entrar como visitante»; la sesión dura 1 hora y no puede registrar ni modificar nada. Sin `DEMO_EMAIL` el botón no aparece.
+
 No se probó el despliegue en Render ni en Supabase. Con datos reales de una organización conviene además un dominio propio con HTTPS, copias de seguridad de la base y revisar con quien corresponda dónde pueden alojarse esos datos.
 
 ### Probar la aplicación
